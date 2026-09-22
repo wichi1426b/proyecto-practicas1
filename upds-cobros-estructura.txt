@@ -1,0 +1,186 @@
+CREATE DATABASE IF NOT EXISTS `upds-cobros` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `upds-cobros`;
+
+SET FOREIGN_KEY_CHECKS=0;
+
+CREATE TABLE `personas` (
+  `ci` varchar(255) NOT NULL,
+  `nombre` varchar(255) NOT NULL,
+  `ap_paterno` varchar(255) NOT NULL,
+  `ap_materno` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `roles` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `tipo` enum('super_admin','admin','cajero') NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `roles_tipo_unique` (`tipo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `usuarios` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `persona_ci` varchar(255) NOT NULL,
+  `rol_id` bigint(20) unsigned NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `estado` enum('activo','inactivo') NOT NULL DEFAULT 'activo',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `usuarios_username_unique` (`username`),
+  KEY `usuarios_rol_id_foreign` (`rol_id`),
+  KEY `usuarios_persona_ci_foreign` (`persona_ci`),
+  CONSTRAINT `usuarios_persona_ci_foreign` FOREIGN KEY (`persona_ci`) REFERENCES `personas` (`ci`),
+  CONSTRAINT `usuarios_rol_id_foreign` FOREIGN KEY (`rol_id`) REFERENCES `roles` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `carreras` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(255) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `estudiantes` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `persona_ci` varchar(255) NOT NULL,
+  `carrera_id` bigint(20) unsigned NOT NULL,
+  `estado` enum('activo','inactivo') NOT NULL DEFAULT 'activo',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `estudiantes_carrera_id_foreign` (`carrera_id`),
+  KEY `estudiantes_persona_ci_foreign` (`persona_ci`),
+  CONSTRAINT `estudiantes_carrera_id_foreign` FOREIGN KEY (`carrera_id`) REFERENCES `carreras` (`id`),
+  CONSTRAINT `estudiantes_persona_ci_foreign` FOREIGN KEY (`persona_ci`) REFERENCES `personas` (`ci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `items` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `creado_por` bigint(20) unsigned NOT NULL,
+  `nombre` varchar(255) NOT NULL,
+  `descripcion` text DEFAULT NULL,
+  `monto` decimal(10,2) NOT NULL,
+  `estado` enum('activo','inactivo') NOT NULL DEFAULT 'activo',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `items_creado_por_foreign` (`creado_por`),
+  CONSTRAINT `items_creado_por_foreign` FOREIGN KEY (`creado_por`) REFERENCES `usuarios` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `arqueos_caja` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `usuario_id` bigint(20) unsigned NOT NULL,
+  `monto_apertura` decimal(10,2) NOT NULL,
+  `fecha_apertura` datetime NOT NULL,
+  `monto_cierre_sistema` decimal(10,2) DEFAULT NULL,
+  `monto_cierre_fisico` decimal(10,2) DEFAULT NULL,
+  `diferencia` decimal(10,2) DEFAULT NULL,
+  `estado` enum('abierto','cerrado') NOT NULL DEFAULT 'abierto',
+  `fecha_cierre` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `arqueos_caja_usuario_id_foreign` (`usuario_id`),
+  CONSTRAINT `arqueos_caja_usuario_id_foreign` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `cobros` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `usuario_id` bigint(20) unsigned NOT NULL,
+  `estudiante_id` bigint(20) unsigned NOT NULL,
+  `arqueo_caja_id` bigint(20) unsigned NOT NULL,
+  `monto_total` decimal(10,2) NOT NULL,
+  `tipo_pago` enum('efectivo','tarjeta','transferencia') NOT NULL DEFAULT 'efectivo',
+  `fecha_pago` datetime NOT NULL,
+  `estado` enum('pagado','anulado') NOT NULL DEFAULT 'pagado',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `cobros_usuario_id_foreign` (`usuario_id`),
+  KEY `cobros_estudiante_id_foreign` (`estudiante_id`),
+  KEY `cobros_arqueo_caja_id_foreign` (`arqueo_caja_id`),
+  CONSTRAINT `cobros_arqueo_caja_id_foreign` FOREIGN KEY (`arqueo_caja_id`) REFERENCES `arqueos_caja` (`id`),
+  CONSTRAINT `cobros_estudiante_id_foreign` FOREIGN KEY (`estudiante_id`) REFERENCES `estudiantes` (`id`),
+  CONSTRAINT `cobros_usuario_id_foreign` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `detalle_pagos` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `cobro_id` bigint(20) unsigned NOT NULL,
+  `item_id` bigint(20) unsigned NOT NULL,
+  `cantidad` int(10) unsigned NOT NULL,
+  `subtotal` decimal(10,2) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `detalle_pagos_cobro_id_foreign` (`cobro_id`),
+  KEY `detalle_pagos_item_id_foreign` (`item_id`),
+  CONSTRAINT `detalle_pagos_cobro_id_foreign` FOREIGN KEY (`cobro_id`) REFERENCES `cobros` (`id`),
+  CONSTRAINT `detalle_pagos_item_id_foreign` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `comprobantes` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `cobro_id` bigint(20) unsigned NOT NULL,
+  `numero_comprobante` varchar(255) NOT NULL,
+  `fecha_emision` datetime NOT NULL,
+  `es_reimpresion` tinyint(1) NOT NULL DEFAULT 0,
+  `anulado` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `comprobantes_cobro_id_unique` (`cobro_id`),
+  UNIQUE KEY `comprobantes_numero_comprobante_unique` (`numero_comprobante`),
+  CONSTRAINT `comprobantes_cobro_id_foreign` FOREIGN KEY (`cobro_id`) REFERENCES `cobros` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `solicitudes_reimpresion` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `comprobante_id` bigint(20) unsigned NOT NULL,
+  `cajero_solicitante_id` bigint(20) unsigned NOT NULL,
+  `admin_autoriza_id` bigint(20) unsigned DEFAULT NULL,
+  `motivo` text NOT NULL,
+  `estado` enum('pendiente','aprobada','rechazada') NOT NULL DEFAULT 'pendiente',
+  `fecha_solicitud` datetime NOT NULL,
+  `fecha_autorizacion` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `solicitudes_reimpresion_comprobante_id_foreign` (`comprobante_id`),
+  KEY `solicitudes_reimpresion_cajero_solicitante_id_foreign` (`cajero_solicitante_id`),
+  KEY `solicitudes_reimpresion_admin_autoriza_id_foreign` (`admin_autoriza_id`),
+  CONSTRAINT `solicitudes_reimpresion_admin_autoriza_id_foreign` FOREIGN KEY (`admin_autoriza_id`) REFERENCES `usuarios` (`id`),
+  CONSTRAINT `solicitudes_reimpresion_cajero_solicitante_id_foreign` FOREIGN KEY (`cajero_solicitante_id`) REFERENCES `usuarios` (`id`),
+  CONSTRAINT `solicitudes_reimpresion_comprobante_id_foreign` FOREIGN KEY (`comprobante_id`) REFERENCES `comprobantes` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `solicitudes_devolucion` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `cobro_id` bigint(20) unsigned NOT NULL,
+  `cajero_solicitante_id` bigint(20) unsigned NOT NULL,
+  `admin_autoriza_id` bigint(20) unsigned DEFAULT NULL,
+  `motivo` text NOT NULL,
+  `monto_devuelto` decimal(10,2) DEFAULT NULL,
+  `estado` enum('pendiente','aprobada','rechazada') NOT NULL DEFAULT 'pendiente',
+  `fecha_solicitud` datetime NOT NULL,
+  `fecha_resolucion` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `solicitudes_devolucion_cobro_id_foreign` (`cobro_id`),
+  KEY `solicitudes_devolucion_cajero_solicitante_id_foreign` (`cajero_solicitante_id`),
+  KEY `solicitudes_devolucion_admin_autoriza_id_foreign` (`admin_autoriza_id`),
+  CONSTRAINT `solicitudes_devolucion_admin_autoriza_id_foreign` FOREIGN KEY (`admin_autoriza_id`) REFERENCES `usuarios` (`id`),
+  CONSTRAINT `solicitudes_devolucion_cajero_solicitante_id_foreign` FOREIGN KEY (`cajero_solicitante_id`) REFERENCES `usuarios` (`id`),
+  CONSTRAINT `solicitudes_devolucion_cobro_id_foreign` FOREIGN KEY (`cobro_id`) REFERENCES `cobros` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS=1;
