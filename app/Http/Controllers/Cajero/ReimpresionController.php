@@ -11,6 +11,47 @@ use Illuminate\Support\Facades\DB;
 
 class ReimpresionController extends Controller
 {
+  
+    public function buscar(Request $request)
+    {
+        $cobros  = collect();
+        $carnet  = null;
+        $buscado = false;
+
+        if ($request->isMethod('post') || $request->filled('carnet')) {
+            $request->validate([
+                'carnet' => ['required', 'string', 'max:20'],
+            ]);
+
+            $carnet  = trim($request->carnet);
+            $buscado = true;
+
+            $persona = \App\Models\Persona::where('ci', $carnet)->first();
+
+            if ($persona) {
+                $estudiante = \App\Models\Estudiante::where('persona_ci', $persona->ci)->first();
+
+                if ($estudiante) {
+                    $cobros = Cobro::with([
+                            'comprobante',
+                            'detallePagos.item',
+                            'solicitudesReimpresion',
+                        ])
+                        ->where('estudiante_id', $estudiante->id)
+                        ->where('usuario_id', $request->user()->id)
+                        ->where('estado', 'pagado')
+                        ->orderByDesc('fecha_pago')
+                        ->get();
+                }
+            }
+        }
+        $solicitudes = SolicitudReimpresion::with(['comprobante'])
+            ->where('cajero_solicitante_id', $request->user()->id)
+            ->orderByDesc('fecha_solicitud')
+            ->get();
+
+        return view('cajero.reimpresion.buscar', compact('cobros', 'carnet', 'buscado', 'solicitudes'));
+    }
     public function formSolicitar(Request $request, Cobro $cobro)
     {
         if ($cobro->usuario_id !== $request->user()->id) {
@@ -21,6 +62,7 @@ class ReimpresionController extends Controller
         }
 
         $comprobante = $cobro->comprobante;
+
         if ($comprobante->anulado) {
             return back()->withErrors(['error' => 'El comprobante de este cobro está anulado.']);
         }
@@ -37,7 +79,6 @@ class ReimpresionController extends Controller
 
         return view('cajero.reimpresion.solicitar', compact('cobro', 'comprobante'));
     }
-
     public function solicitar(Request $request, Cobro $cobro)
     {
         if ($cobro->usuario_id !== $request->user()->id) {
@@ -76,10 +117,9 @@ class ReimpresionController extends Controller
         ]);
 
         return redirect()
-            ->route('cajero.cobros.comprobante', $cobro)
+            ->route('cajero.reimpresion.buscar')
             ->with('mensaje', 'Solicitud de reimpresión enviada. Espera la autorización del administrador.');
     }
-
     public function reimprimir(Request $request, SolicitudReimpresion $solicitud)
     {
         if ($solicitud->cajero_solicitante_id !== $request->user()->id) {
@@ -96,45 +136,21 @@ class ReimpresionController extends Controller
         if ($comprobante->anulado) {
             return back()->withErrors(['error' => 'El comprobante original está anulado, no se puede reimprimir.']);
         }
-
-        $yaEjecutada = Comprobante::where('cobro_id', $cobro->id)
-            ->where('es_reimpresion', true)
-            ->where('numero_comprobante', 'like', 'R-' . str_pad($cobro->id, 8, '0', STR_PAD_LEFT) . '%')
-            ->exists();
-
-        if ($yaEjecutada) {
-            return back()->withErrors(['error' => 'Esta reimpresión ya fue ejecutada.']);
+        if (!$solicitud->reimpresion_ejecutada) {
+            $solicitud->reimpresion_ejecutada = true;
+            $solicitud->save();
         }
-
-        $nuevoComprobante = DB::transaction(function () use ($cobro, $solicitud) {
-            $nuevo = Comprobante::create([
-                'cobro_id'            => $cobro->id,
-                'numero_comprobante'  => 'R-' . str_pad($cobro->id, 8, '0', STR_PAD_LEFT) . '-' . now()->format('YmdHis'),
-                'fecha_emision'       => now(),
-                'es_reimpresion'      => true,
-                'anulado'             => false,
-            ]);
-
-            return $nuevo;
-        });
 
         $cobro->load(['estudiante.persona', 'usuario.persona', 'detallePagos.item']);
 
-        return view('cajero.reimpresion.comprobante_reimpresion', compact('cobro', 'nuevoComprobante', 'solicitud'));
+        return view('cajero.reimpresion.comprobante_reimpresion', [
+            'cobro'       => $cobro,
+            'comprobante' => $comprobante,
+            'solicitud'   => $solicitud,
+        ]);
     }
-
     public function misSolicitudes(Request $request)
     {
-        $solicitudes = SolicitudReimpresion::with([
-                'comprobante.cobro.estudiante.persona',
-                'comprobante.cobro.detallePagos.item',
-                'adminAutoriza.persona',
-            ])
-            ->where('cajero_solicitante_id', $request->user()->id)
-            ->orderByDesc('fecha_solicitud')
-            ->get();
-
-        return view('cajero.reimpresion.mis_solicitudes', compact('solicitudes'));
+        return redirect()->route('cajero.reimpresion.buscar');
     }
 }
-

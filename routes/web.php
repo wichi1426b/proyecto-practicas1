@@ -64,9 +64,13 @@ Route::prefix('cajero')->middleware(['auth', 'rol:cajero'])->name('cajero.')->gr
         Route::get('/cobros/{cobro}/comprobante', [CobroController::class, 'comprobante'])->name('cobros.comprobante');
 
         Route::get('/cobros/{cobro}/reimpresion/solicitar',
-        [CajeroReimpresionController::class, 'formSolicitar'])
-        ->name('cobros.reimpresion.form');
-    
+        [CajeroReimpresionController::class, 'formSolicitar'])->name('cobros.reimpresion.form');
+
+        Route::get('/reimpresion/buscar',  [CajeroReimpresionController::class, 'buscar'])->name('reimpresion.buscar');
+        Route::post('/reimpresion/buscar', [CajeroReimpresionController::class, 'buscar'])->name('reimpresion.buscar.post');
+        Route::get('/devolucion/buscar',  [CajeroDevolucionController::class, 'buscar'])->name('devolucion.buscar');
+        Route::post('/devolucion/buscar', [CajeroDevolucionController::class, 'buscar'])->name('devolucion.buscar.post');
+
         Route::post('/cobros/{cobro}/reimpresion/solicitar',[CajeroReimpresionController::class, 'solicitar'])->name('cobros.reimpresion.solicitar');
         Route::post('/reimpresion/{solicitud}/ejecutar',[CajeroReimpresionController::class, 'reimprimir'])->name('reimpresion.ejecutar');
         Route::get('/reimpresiones',[CajeroReimpresionController::class, 'misSolicitudes'])->name('reimpresion.mis_solicitudes');
@@ -80,3 +84,5 @@ Route::prefix('cajero')->middleware(['auth', 'rol:cajero'])->name('cajero.')->gr
 
     });
 });
+
+

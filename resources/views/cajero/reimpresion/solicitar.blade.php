@@ -33,8 +33,6 @@
                 </div>
             </div>
         </div>
-
-        {{-- Formulario --}}
         <div class="card bg-white">
             <div class="card-body">
                 <form method="POST" action="{{ route('cajero.cobros.reimpresion.solicitar', $cobro) }}">

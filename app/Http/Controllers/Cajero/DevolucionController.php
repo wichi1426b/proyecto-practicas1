@@ -9,6 +9,51 @@ use Illuminate\Http\Request;
 
 class DevolucionController extends Controller
 {
+    public function buscar(Request $request)
+    {
+        $cobros  = collect();
+        $carnet  = null;
+        $buscado = false;
+
+        if ($request->isMethod('post') || $request->filled('carnet')) {
+            $request->validate([
+                'carnet' => ['required', 'string', 'max:20'],
+            ]);
+
+            $carnet  = trim($request->carnet);
+            $buscado = true;
+
+            $persona = \App\Models\Persona::where('ci', $carnet)->first();
+
+            if ($persona) {
+                $estudiante = \App\Models\Estudiante::where('persona_ci', $persona->ci)->first();
+
+                if ($estudiante) {
+                    $cobros = Cobro::with([
+                            'comprobante',
+                            'detallePagos.item',
+                            'solicitudesDevolucion',
+                        ])
+                        ->where('estudiante_id', $estudiante->id)
+                        ->where('usuario_id', $request->user()->id)
+                        ->where('estado', 'pagado')
+                        ->orderByDesc('fecha_pago')
+                        ->get();
+                }
+            }
+        }
+        $solicitudes = SolicitudDevolucion::with([
+                'cobro.estudiante.persona',
+                'cobro.detallePagos.item',
+                'cobro.comprobante',
+            ])
+            ->where('cajero_solicitante_id', $request->user()->id)
+            ->orderByDesc('fecha_solicitud')
+            ->get();
+
+        return view('cajero.devolucion.buscar', compact('cobros', 'carnet', 'buscado', 'solicitudes'));
+    }
+
     public function formSolicitar(Request $request, Cobro $cobro)
     {
         if ($cobro->usuario_id !== $request->user()->id) {
@@ -16,23 +61,21 @@ class DevolucionController extends Controller
         }
 
         if ($cobro->estado !== 'pagado') {
-            return back()->withErrors(['error' => 'Este cobro ya está anulado, no se puede solicitar devolución.']);
+            return back()->withErrors(['error' => 'Este cobro no está en estado pagado.']);
         }
 
-        $pendiente = SolicitudDevolucion::where('cobro_id', $cobro->id)
-            ->where('estado', 'pendiente')
-            ->exists();
+        $solicitudAprobada = SolicitudDevolucion::where('cobro_id', $cobro->id)
+            ->where('estado', 'aprobada')->exists();
 
-        if ($pendiente) {
-            return back()->withErrors(['error' => 'Ya tienes una solicitud de devolución pendiente para este cobro.']);
-        }
-
-        $aprobada = SolicitudDevolucion::where('cobro_id', $cobro->id)
-            ->where('estado', 'aprobada')
-            ->exists();
-
-        if ($aprobada) {
+        if ($solicitudAprobada) {
             return back()->withErrors(['error' => 'Este cobro ya fue devuelto anteriormente.']);
+        }
+
+        $solicitudPendiente = SolicitudDevolucion::where('cobro_id', $cobro->id)
+            ->where('estado', 'pendiente')->exists();
+
+        if ($solicitudPendiente) {
+            return back()->withErrors(['error' => 'Ya tienes una solicitud de devolución pendiente para este cobro.']);
         }
 
         $cobro->load(['estudiante.persona', 'detallePagos.item', 'comprobante']);
@@ -42,29 +85,26 @@ class DevolucionController extends Controller
 
     public function solicitar(Request $request, Cobro $cobro)
     {
-
         if ($cobro->usuario_id !== $request->user()->id) {
             abort(403);
         }
 
         if ($cobro->estado !== 'pagado') {
-            return back()->withErrors(['error' => 'Este cobro ya está anulado.']);
+            return back()->withErrors(['error' => 'Este cobro no está en estado pagado.']);
         }
 
-        $pendiente = SolicitudDevolucion::where('cobro_id', $cobro->id)
-            ->where('estado', 'pendiente')
-            ->exists();
+        $solicitudAprobada = SolicitudDevolucion::where('cobro_id', $cobro->id)
+            ->where('estado', 'aprobada')->exists();
 
-        if ($pendiente) {
-            return back()->withErrors(['error' => 'Ya tienes una solicitud de devolución pendiente para este cobro.']);
-        }
-
-        $aprobada = SolicitudDevolucion::where('cobro_id', $cobro->id)
-            ->where('estado', 'aprobada')
-            ->exists();
-
-        if ($aprobada) {
+        if ($solicitudAprobada) {
             return back()->withErrors(['error' => 'Este cobro ya fue devuelto anteriormente.']);
+        }
+
+        $solicitudPendiente = SolicitudDevolucion::where('cobro_id', $cobro->id)
+            ->where('estado', 'pendiente')->exists();
+
+        if ($solicitudPendiente) {
+            return back()->withErrors(['error' => 'Ya tienes una solicitud de devolución pendiente para este cobro.']);
         }
 
         $request->validate([
@@ -76,28 +116,17 @@ class DevolucionController extends Controller
             'cajero_solicitante_id' => $request->user()->id,
             'admin_autoriza_id'     => null,
             'motivo'                => $request->motivo,
-            'monto_devuelto'        => null,
             'estado'                => 'pendiente',
             'fecha_solicitud'       => now(),
+            'monto_devuelto'        => null,
         ]);
 
         return redirect()
-            ->route('cajero.cobros.comprobante', $cobro)
+            ->route('cajero.devolucion.buscar')
             ->with('mensaje', 'Solicitud de devolución enviada. Espera la autorización del administrador.');
     }
-
     public function misSolicitudes(Request $request)
     {
-        $solicitudes = SolicitudDevolucion::with([
-                'cobro.estudiante.persona',
-                'cobro.detallePagos.item',
-                'cobro.comprobante',
-                'adminAutoriza.persona',
-            ])
-            ->where('cajero_solicitante_id', $request->user()->id)
-            ->orderByDesc('fecha_solicitud')
-            ->get();
-
-        return view('cajero.devolucion.mis_solicitudes', compact('solicitudes'));
+        return redirect()->route('cajero.devolucion.buscar');
     }
 }

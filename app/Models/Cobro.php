@@ -49,7 +49,19 @@ class Cobro extends Model
     }
 
     public function solicitudesDevolucion()
-{
-    return $this->hasMany(SolicitudDevolucion::class, 'cobro_id');
-}
+    {
+        return $this->hasMany(SolicitudDevolucion::class, 'cobro_id');
+    }
+
+    public function solicitudesReimpresion()
+    {
+        return $this->hasManyThrough(
+            \App\Models\SolicitudReimpresion::class,
+            \App\Models\Comprobante::class,
+            'cobro_id',
+            'comprobante_id',
+            'id',
+            'id'
+        );
+    }
 }

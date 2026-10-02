@@ -26,9 +26,9 @@
         </div>
     </div>
     <hr>
-    <div class="comprobante-fila"><span>N° Original</span><span>{{ $cobro->comprobante->numero_comprobante }}</span></div>
-    <div class="comprobante-fila"><span>N° Reimpresión</span><span>{{ $nuevoComprobante->numero_comprobante }}</span></div>
-    <div class="comprobante-fila"><span>Fecha</span><span>{{ $cobro->fecha_pago->format('d/m/Y') }}</span></div>
+    <div class="comprobante-fila"><span>N° Comprobante</span><span>{{ $comprobante->numero_comprobante }}</span></div>
+    <div class="comprobante-fila"><span>Fecha reimpresión</span><span>{{ now()->format('d/m/Y H:i') }}</span></div>
+    <div class="comprobante-fila"><span>Fecha pago original</span><span>{{ $cobro->fecha_pago->format('d/m/Y') }}</span></div>
     <div class="comprobante-fila"><span>Cajero</span><span>{{ $cobro->usuario->persona->nombreCompleto() }}</span></div>
     <div class="comprobante-fila"><span>C.I.</span><span>{{ $cobro->estudiante->persona_ci }}</span></div>
     <div class="comprobante-fila"><span>Nombre</span><span>{{ $cobro->estudiante->persona->nombreCompleto() }}</span></div>

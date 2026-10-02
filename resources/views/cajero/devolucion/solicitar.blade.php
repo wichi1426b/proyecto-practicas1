@@ -7,7 +7,6 @@
     <div class="col-md-6">
         <h4 class="mb-3">Solicitar devolución de cobro</h4>
 
-        {{-- Datos del cobro --}}
         <div class="card bg-white mb-3">
             <div class="card-body">
                 <h6 class="text-muted mb-2">Datos del cobro</h6>
@@ -37,8 +36,6 @@
                 </div>
             </div>
         </div>
-
-        {{-- Formulario --}}
         <div class="card bg-white">
             <div class="card-body">
                 <form method="POST" action="{{ route('cajero.cobros.devolucion.solicitar', $cobro) }}">
