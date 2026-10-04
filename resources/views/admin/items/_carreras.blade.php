@@ -1,6 +1,6 @@
 <div class="mb-3">
     <label class="form-label">Carreras / áreas</label>
-    <div class="form-text mt-0 mb-2">Deja todo sin marcar si el ítem es para todas las carreras. Marca una o más si es un requisito específico (ej. Medicina: bata, pijama).</div>
+    <div class="form-text mt-0 mb-2">Deja todo sin marcar si el ítem es para todas las carreras. Marca una o más si es un requisito específico.</div>
     <div class="row">
         @foreach($carreras as $carrera)
             <div class="col-md-4">

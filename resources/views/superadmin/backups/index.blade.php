@@ -11,11 +11,6 @@
     </form>
 </div>
 
-<p class="text-muted">
-    Genera un archivo .sql con la estructura y los datos de toda la base de datos. Descárgalo y guárdalo en un lugar seguro
-    (disco externo, nube). Para restaurarlo, impórtalo en MySQL (phpMyAdmin, MySQL Workbench o <code>mysql &lt; archivo.sql</code>).
-</p>
-
 <table class="table table-bordered bg-white align-middle">
     <thead>
         <tr>

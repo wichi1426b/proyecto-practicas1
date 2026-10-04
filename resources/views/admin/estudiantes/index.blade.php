@@ -19,11 +19,6 @@
 <div class="card bg-white mb-4">
     <div class="card-header fw-semibold">Cargar estudiantes desde Excel</div>
     <div class="card-body">
-        <p class="text-muted small mb-2">
-            La primera fila debe contener los encabezados:
-            <strong>CI, Nombre 1, Nombre 2, Apellido paterno, Apellido materno, Carrera</strong>.
-            Si el CI ya existe se actualizan sus datos; las carreras que no existan se crean automáticamente.
-        </p>
         <form method="POST" action="{{ route('admin.estudiantes.importar') }}" enctype="multipart/form-data" class="row g-2 align-items-end">
             @csrf
             <div class="col-md-6">
