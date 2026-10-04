@@ -34,6 +34,8 @@
                 </div>
             </div>
 
+            @include('admin.items._carreras', ['seleccionadas' => $item->carreras->pluck('id')->all()])
+
             <button type="submit" class="btn btn-primary">Guardar cambios</button>
             <a href="{{ route('admin.items.index') }}" class="btn btn-outline-secondary">Cancelar</a>
         </form>

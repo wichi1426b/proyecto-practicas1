@@ -36,7 +36,7 @@ class DevolucionController extends Controller
                         ])
                         ->where('estudiante_id', $estudiante->id)
                         ->where('usuario_id', $request->user()->id)
-                        ->where('estado', 'pagado')
+                        ->vigentes()
                         ->orderByDesc('fecha_pago')
                         ->get();
                 }
@@ -60,8 +60,8 @@ class DevolucionController extends Controller
             abort(403);
         }
 
-        if ($cobro->estado !== 'pagado') {
-            return back()->withErrors(['error' => 'Este cobro no está en estado pagado.']);
+        if (! in_array($cobro->estado, ['pagado', 'pendiente'])) {
+            return back()->withErrors(['error' => 'Este cobro está anulado.']);
         }
 
         $solicitudAprobada = SolicitudDevolucion::where('cobro_id', $cobro->id)
@@ -89,8 +89,8 @@ class DevolucionController extends Controller
             abort(403);
         }
 
-        if ($cobro->estado !== 'pagado') {
-            return back()->withErrors(['error' => 'Este cobro no está en estado pagado.']);
+        if (! in_array($cobro->estado, ['pagado', 'pendiente'])) {
+            return back()->withErrors(['error' => 'Este cobro está anulado.']);
         }
 
         $solicitudAprobada = SolicitudDevolucion::where('cobro_id', $cobro->id)
@@ -125,6 +125,48 @@ class DevolucionController extends Controller
             ->route('cajero.devolucion.buscar')
             ->with('mensaje', 'Solicitud de devolución enviada. Espera la autorización del administrador.');
     }
+    public function entregar(Request $request, SolicitudDevolucion $solicitud)
+    {
+        if ($solicitud->cajero_solicitante_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        if ($solicitud->estado !== 'aprobada') {
+            return back()->withErrors(['error' => 'La devolución no está aprobada.']);
+        }
+
+        if (! $solicitud->fueEntregada()) {
+            $arqueo = $request->user()->arqueoAbierto();
+
+            if ($arqueo->montoSistemaCalculado() < (float) $solicitud->monto_devuelto) {
+                return back()->withErrors(['error' => 'No hay suficiente dinero en caja para entregar esta devolución.']);
+            }
+
+            $solicitud->update([
+                'arqueo_caja_id'     => $arqueo->id,
+                'fecha_entrega'      => now(),
+                'numero_comprobante' => 'D-' . str_pad($solicitud->id, 8, '0', STR_PAD_LEFT),
+            ]);
+        }
+
+        return redirect()->route('cajero.devolucion.comprobante', $solicitud);
+    }
+
+    public function comprobante(Request $request, SolicitudDevolucion $solicitud)
+    {
+        if ($solicitud->cajero_solicitante_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        if (! $solicitud->fueEntregada()) {
+            return redirect()->route('cajero.devolucion.buscar')->withErrors(['error' => 'La devolución aún no fue entregada.']);
+        }
+
+        $solicitud->load(['cobro.estudiante.persona', 'cobro.detallePagos.item', 'cobro.comprobante', 'cajeroSolicitante.persona', 'adminAutoriza.persona']);
+
+        return view('cajero.devolucion.comprobante', ['solicitud' => $solicitud, 'volver' => route('cajero.devolucion.buscar')]);
+    }
+
     public function misSolicitudes(Request $request)
     {
         return redirect()->route('cajero.devolucion.buscar');

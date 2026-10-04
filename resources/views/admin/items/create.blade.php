@@ -25,6 +25,8 @@
                 <input type="number" step="0.01" min="0.01" name="monto" class="form-control" value="{{ old('monto') }}" required>
             </div>
 
+            @include('admin.items._carreras')
+
             <button type="submit" class="btn btn-primary">Guardar</button>
             <a href="{{ route('admin.items.index') }}" class="btn btn-outline-secondary">Cancelar</a>
         </form>

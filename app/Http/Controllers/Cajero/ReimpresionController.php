@@ -39,7 +39,7 @@ class ReimpresionController extends Controller
                         ])
                         ->where('estudiante_id', $estudiante->id)
                         ->where('usuario_id', $request->user()->id)
-                        ->where('estado', 'pagado')
+                        ->vigentes()
                         ->orderByDesc('fecha_pago')
                         ->get();
                 }
@@ -57,8 +57,8 @@ class ReimpresionController extends Controller
         if ($cobro->usuario_id !== $request->user()->id) {
             abort(403);
         }
-        if ($cobro->estado !== 'pagado') {
-            return back()->withErrors(['error' => 'Este cobro no está en estado pagado.']);
+        if (! in_array($cobro->estado, ['pagado', 'pendiente'])) {
+            return back()->withErrors(['error' => 'Este cobro está anulado.']);
         }
 
         $comprobante = $cobro->comprobante;
@@ -85,8 +85,8 @@ class ReimpresionController extends Controller
             abort(403);
         }
 
-        if ($cobro->estado !== 'pagado') {
-            return back()->withErrors(['error' => 'Este cobro no está en estado pagado.']);
+        if (! in_array($cobro->estado, ['pagado', 'pendiente'])) {
+            return back()->withErrors(['error' => 'Este cobro está anulado.']);
         }
 
         $comprobante = $cobro->comprobante;

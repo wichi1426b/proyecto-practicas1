@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\Admin\EstudianteController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Cajero\CajaController;
 use App\Http\Controllers\Cajero\CobroController;
+use App\Http\Controllers\SuperAdmin\BackupController;
 use App\Http\Controllers\SuperAdmin\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +35,11 @@ Route::prefix('superadmin')->middleware(['auth', 'rol:super_admin'])->name('supe
     Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
     Route::get('/usuarios/{usuario}/editar', [UsuarioController::class, 'edit'])->name('usuarios.edit');
     Route::put('/usuarios/{usuario}', [UsuarioController::class, 'update'])->name('usuarios.update');
+
+    Route::get('/backups', [BackupController::class, 'index'])->name('backups.index');
+    Route::post('/backups', [BackupController::class, 'generar'])->name('backups.generar');
+    Route::get('/backups/{archivo}', [BackupController::class, 'descargar'])->name('backups.descargar');
+    Route::delete('/backups/{archivo}', [BackupController::class, 'eliminar'])->name('backups.eliminar');
 });
 
 Route::prefix('admin')->middleware(['auth', 'rol:admin'])->name('admin.')->group(function () {
@@ -43,6 +50,11 @@ Route::prefix('admin')->middleware(['auth', 'rol:admin'])->name('admin.')->group
     Route::put('/items/{item}', [ItemController::class, 'update'])->name('items.update');
 
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
+    Route::get('/reportes/exportar/{formato}', [ReporteController::class, 'exportar'])->name('reportes.exportar');
+
+    Route::get('/estudiantes', [EstudianteController::class, 'index'])->name('estudiantes.index');
+    Route::get('/estudiantes/plantilla', [EstudianteController::class, 'plantilla'])->name('estudiantes.plantilla');
+    Route::post('/estudiantes/importar', [EstudianteController::class, 'importar'])->name('estudiantes.importar');
 
     Route::get('/reimpresiones',[AdminReimpresionController::class, 'index']) ->name('reimpresiones.index');
     
@@ -52,6 +64,7 @@ Route::prefix('admin')->middleware(['auth', 'rol:admin'])->name('admin.')->group
     Route::get('/devoluciones',[AdminDevolucionController::class, 'index'])->name('devoluciones.index');
     Route::post('/devoluciones/{solicitud}/aprobar',[AdminDevolucionController::class, 'aprobar'])->name('devoluciones.aprobar');
     Route::post('/devoluciones/{solicitud}/rechazar',[AdminDevolucionController::class, 'rechazar'])->name('devoluciones.rechazar');
+    Route::get('/devoluciones/{solicitud}/comprobante',[AdminDevolucionController::class, 'comprobante'])->name('devoluciones.comprobante');
 });
 
 Route::prefix('cajero')->middleware(['auth', 'rol:cajero'])->name('cajero.')->group(function () {
@@ -62,6 +75,8 @@ Route::prefix('cajero')->middleware(['auth', 'rol:cajero'])->name('cajero.')->gr
         Route::get('/cobros/crear', [CobroController::class, 'create'])->name('cobros.create');
         Route::post('/cobros', [CobroController::class, 'store'])->name('cobros.store');
         Route::get('/cobros/{cobro}/comprobante', [CobroController::class, 'comprobante'])->name('cobros.comprobante');
+        Route::get('/cobros/{cobro}/saldo', [CobroController::class, 'formSaldo'])->name('cobros.saldo.form');
+        Route::post('/cobros/{cobro}/saldo', [CobroController::class, 'pagarSaldo'])->name('cobros.saldo.pagar');
 
         Route::get('/cobros/{cobro}/reimpresion/solicitar',
         [CajeroReimpresionController::class, 'formSolicitar'])->name('cobros.reimpresion.form');
@@ -81,6 +96,8 @@ Route::prefix('cajero')->middleware(['auth', 'rol:cajero'])->name('cajero.')->gr
         Route::get('/cobros/{cobro}/devolucion/solicitar',[CajeroDevolucionController::class, 'formSolicitar'])->name('cobros.devolucion.form');
         Route::post('/cobros/{cobro}/devolucion/solicitar',[CajeroDevolucionController::class, 'solicitar'])->name('cobros.devolucion.solicitar');
         Route::get('/devoluciones',[CajeroDevolucionController::class, 'misSolicitudes'])->name('devolucion.mis_solicitudes');
+        Route::post('/devoluciones/{solicitud}/entregar',[CajeroDevolucionController::class, 'entregar'])->name('devolucion.entregar');
+        Route::get('/devoluciones/{solicitud}/comprobante',[CajeroDevolucionController::class, 'comprobante'])->name('devolucion.comprobante');
 
     });
 });

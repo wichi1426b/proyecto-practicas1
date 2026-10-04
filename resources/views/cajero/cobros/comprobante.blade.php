@@ -5,61 +5,22 @@
 @section('contenido')
 <div class="row justify-content-center no-imprimir">
     <div class="col-md-6">
-        <div class="alert alert-success text-center mt-3">
-            <h4 class="mb-1">Cobro registrado correctamente</h4>
+        @php $ultimoAbono = $cobro->abonos->sortBy('id')->last(); @endphp
+        <div class="alert {{ $cobro->tieneSaldo() ? 'alert-warning' : 'alert-success' }} text-center mt-3">
+            <h4 class="mb-1">{{ $cobro->tieneSaldo() ? 'Pago parcial registrado' : 'Cobro registrado correctamente' }}</h4>
             <p class="mb-0">Comprobante N° {{ $cobro->comprobante->numero_comprobante }}</p>
+            @if($ultimoAbono && $ultimoAbono->cambio > 0)
+                <p class="fs-4 fw-bold mb-0 mt-2">Cambio a entregar: Bs. {{ number_format($ultimoAbono->cambio, 2) }}</p>
+            @endif
+            @if($cobro->tieneSaldo())
+                <p class="fs-5 fw-bold mb-0 mt-2 text-danger">Falta pagar: Bs. {{ number_format($cobro->saldo_pendiente, 2) }}</p>
+            @endif
         </div>
 
-        <div class="d-flex gap-2 justify-content-center mb-4 flex-wrap">
+        <div class="d-flex gap-2 justify-content-center mb-4">
             <button type="button" class="btn btn-primary" onclick="window.print()">Imprimir comprobante</button>
             <a href="{{ route('cajero.cobros.create') }}" class="btn btn-outline-secondary">Registrar otro cobro</a>
-
-            @php
-                $solicitudReimpPendiente = $cobro->comprobante->solicitudesReimpresion()
-                    ->where('estado', 'pendiente')->exists();
-
-                $solicitudDevPendiente = $cobro->solicitudesDevolucion()
-                    ->where('estado', 'pendiente')->exists();
-
-                $solicitudDevAprobada = $cobro->solicitudesDevolucion()
-                    ->where('estado', 'aprobada')->exists();
-            @endphp
-
-            {{-- Botón reimpresión --}}
-            @if($cobro->estado === 'pagado' && !$cobro->comprobante->anulado && !$solicitudReimpPendiente)
-                <a href="{{ route('cajero.cobros.reimpresion.form', $cobro) }}"
-                   class="btn btn-outline-warning">
-                    Solicitar reimpresión
-                </a>
-            @elseif($solicitudReimpPendiente)
-                <span class="btn btn-outline-secondary disabled">Reimpresión en espera de autorización</span>
-            @endif
-
-            {{-- Botón devolución --}}
-            @if($cobro->estado === 'anulado' || $solicitudDevAprobada)
-                <span class="btn btn-outline-danger disabled">Cobro anulado</span>
-            @elseif($solicitudDevPendiente)
-                <span class="btn btn-outline-secondary disabled">Devolución en espera de autorización</span>
-            @elseif($cobro->estado === 'pagado')
-                <a href="{{ route('cajero.cobros.devolucion.form', $cobro) }}"
-                   class="btn btn-outline-danger">
-                    Solicitar devolución
-                </a>
-            @endif
         </div>
-
-        {{-- ① ALERTAS DE ESTADO — AGREGADO --}}
-        @if(session('mensaje'))
-            <div class="alert alert-info text-center">{{ session('mensaje') }}</div>
-        @endif
-
-        @if($errors->any())
-            <div class="alert alert-danger">
-                @foreach($errors->all() as $error)
-                    <div>{{ $error }}</div>
-                @endforeach
-            </div>
-        @endif
     </div>
 </div>
 
@@ -67,12 +28,8 @@
     <div class="text-center">
         <div class="comprobante-titulo">UPDS</div>
         <div class="comprobante-subtitulo">COMPROBANTE DE PAGO</div>
-
-        {{-- ② LEYENDA ANULADO en el ticket — AGREGADO --}}
-        @if($cobro->comprobante->anulado)
-            <div style="font-weight:bold; border:1px solid #000; padding:2px 4px; margin-top:4px;">
-                *** ANULADO — NO VÁLIDO ***
-            </div>
+        @if($cobro->tieneSaldo())
+            <div class="comprobante-subtitulo"><strong>PAGO PARCIAL</strong></div>
         @endif
     </div>
     <hr>
@@ -84,17 +41,28 @@
     <hr>
     <div class="comprobante-fila comprobante-encabezado"><span>Detalle</span><span>Monto</span></div>
     @foreach($cobro->detallePagos as $detalle)
-        <div class="comprobante-fila">
-            <span>{{ $detalle->item->nombre }}</span>
-            <span>{{ number_format($detalle->subtotal, 2) }}</span>
-        </div>
+        <div class="comprobante-fila"><span>{{ $detalle->cantidad }} x {{ $detalle->item->nombre }}</span><span>{{ number_format($detalle->subtotal, 2) }}</span></div>
     @endforeach
     <hr>
-    <div class="comprobante-fila comprobante-total">
-        <span>TOTAL</span>
-        <span>{{ number_format($cobro->monto_total, 2) }}</span>
-    </div>
+    <div class="comprobante-fila comprobante-total"><span>TOTAL</span><span>{{ number_format($cobro->monto_total, 2) }}</span></div>
+    <div class="comprobante-fila"><span>Pagado</span><span>{{ number_format($cobro->monto_pagado, 2) }}</span></div>
+    @if($cobro->tieneSaldo())
+        <div class="comprobante-fila comprobante-total"><span>FALTA</span><span>{{ number_format($cobro->saldo_pendiente, 2) }}</span></div>
+    @endif
+    @if($ultimoAbono)
+        <hr>
+        <div class="comprobante-fila"><span>Recibido</span><span>{{ number_format($ultimoAbono->monto_recibido, 2) }}</span></div>
+        <div class="comprobante-fila"><span>Cambio</span><span>{{ number_format($ultimoAbono->cambio, 2) }}</span></div>
+    @endif
+    @if($cobro->abonos->count() > 1)
+        <hr>
+        <div class="comprobante-fila comprobante-encabezado"><span>Pagos</span><span></span></div>
+        @foreach($cobro->abonos->sortBy('id') as $abono)
+            <div class="comprobante-fila"><span>{{ $abono->fecha->format('d/m/Y H:i') }}</span><span>{{ number_format($abono->monto, 2) }}</span></div>
+        @endforeach
+    @endif
     <hr>
+
     <div class="text-center comprobante-firma">FIRMA</div>
 </div>
 @endsection

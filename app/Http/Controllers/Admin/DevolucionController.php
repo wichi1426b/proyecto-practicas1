@@ -38,23 +38,34 @@ class DevolucionController extends Controller
 
         DB::transaction(function () use ($solicitud, $request) {
             $cobro = $solicitud->cobro;
-            if ($cobro->estado !== 'pagado') {
+            if (! in_array($cobro->estado, ['pagado', 'pendiente'])) {
                 throw new \Exception('El cobro ya fue anulado por otra operación.');
             }
 
-            $cobro->update(['estado' => 'anulado']);
+            $cobro->update(['estado' => 'anulado', 'saldo_pendiente' => 0]);
 
             $cobro->comprobante()->update(['anulado' => true]);
 
             $solicitud->update([
                 'estado'            => 'aprobada',
                 'admin_autoriza_id' => $request->user()->id,
-                'monto_devuelto'    => $cobro->monto_total,
+                'monto_devuelto'    => $cobro->monto_pagado,
                 'fecha_resolucion'  => now(),
             ]);
         });
 
-        return back()->with('mensaje', 'Devolución aprobada. El cobro ha sido anulado.');
+        return back()->with('mensaje', 'Devolución aprobada. El cobro ha sido anulado y el cajero puede entregar el dinero.');
+    }
+
+    public function comprobante(SolicitudDevolucion $solicitud)
+    {
+        if (! $solicitud->fueEntregada()) {
+            return back()->withErrors(['error' => 'La devolución aún no fue entregada por el cajero.']);
+        }
+
+        $solicitud->load(['cobro.estudiante.persona', 'cobro.detallePagos.item', 'cobro.comprobante', 'cajeroSolicitante.persona', 'adminAutoriza.persona']);
+
+        return view('cajero.devolucion.comprobante', ['solicitud' => $solicitud, 'volver' => route('admin.devoluciones.index')]);
     }
 
     public function rechazar(Request $request, SolicitudDevolucion $solicitud)

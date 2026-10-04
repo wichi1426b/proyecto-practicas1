@@ -33,6 +33,7 @@
                     <th>Estudiante</th>
                     <th>Ítem(s)</th>
                     <th>Monto</th>
+                    <th>Devuelto</th>
                     <th>Fecha cobro</th>
                     <th>Fecha solicitud</th>
                     <th>Motivo</th>
@@ -43,16 +44,24 @@
             </thead>
             <tbody>
                 @foreach($solicitudes as $solicitud)
-                    @php
-                        $arqueoYaCerrado = $solicitud->estado === 'aprobada'
-                            && $solicitud->cobro->arqueoCaja->estado === 'cerrado';
-                    @endphp
-                    <tr class="{{ $arqueoYaCerrado ? 'table-warning' : '' }}">
+                    <tr>
                         <td>{{ $solicitud->cobro->comprobante?->numero_comprobante ?? '—' }}</td>
                         <td>{{ $solicitud->cajeroSolicitante->persona->nombreCompleto() }}</td>
                         <td>{{ $solicitud->cobro->estudiante->persona->nombreCompleto() }}</td>
                         <td>{{ $solicitud->cobro->detallePagos->pluck('item.nombre')->implode(', ') }}</td>
                         <td>Bs. {{ number_format($solicitud->cobro->monto_total, 2) }}</td>
+                        <td>
+                            @if($solicitud->estado === 'aprobada')
+                                Bs. {{ number_format($solicitud->monto_devuelto, 2) }}<br>
+                                @if($solicitud->fueEntregada())
+                                    <a href="{{ route('admin.devoluciones.comprobante', $solicitud) }}" class="small">{{ $solicitud->numero_comprobante }}</a>
+                                @else
+                                    <span class="badge bg-warning text-dark">Por entregar</span>
+                                @endif
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
+                        </td>
                         <td>{{ $solicitud->cobro->fecha_pago->format('d/m/Y H:i') }}</td>
                         <td>{{ $solicitud->fecha_solicitud->format('d/m/Y H:i') }}</td>
                         <td>{{ Str::limit($solicitud->motivo, 60) }}</td>
@@ -99,10 +108,8 @@
         </table>
     </div>
 
-    @if($solicitudes->where('estado', 'aprobada')->filter(fn($s) => $s->cobro->arqueoCaja->estado === 'cerrado')->isNotEmpty())
-        <div class="alert alert-warning mt-3">
-            <small>* Las filas resaltadas corresponden a cobros anulados cuyo arqueo de caja ya estaba cerrado. Revisar con el administrador si el arqueo requiere ajuste manual.</small>
-        </div>
-    @endif
+    <div class="alert alert-secondary mt-3">
+        <small>Al aprobar, el cobro y su comprobante quedan anulados. El dinero se descuenta de la caja del cajero cuando este registra la entrega al estudiante, generando el comprobante de devolución.</small>
+    </div>
 @endif
 @endsection

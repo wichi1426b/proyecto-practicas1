@@ -12,6 +12,11 @@ class Carrera extends Model
         'nombre',
     ];
 
+    public function items()
+    {
+        return $this->belongsToMany(Item::class, 'carrera_item')->withTimestamps();
+    }
+
     public function estudiantes()
     {
         return $this->hasMany(Estudiante::class, 'carrera_id');

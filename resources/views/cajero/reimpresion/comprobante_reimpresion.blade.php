@@ -36,7 +36,7 @@
     <div class="comprobante-fila comprobante-encabezado"><span>Detalle</span><span>Monto</span></div>
     @foreach($cobro->detallePagos as $detalle)
         <div class="comprobante-fila">
-            <span>{{ $detalle->item->nombre }}</span>
+            <span>{{ $detalle->cantidad }} x {{ $detalle->item->nombre }}</span>
             <span>{{ number_format($detalle->subtotal, 2) }}</span>
         </div>
     @endforeach
@@ -45,6 +45,10 @@
         <span>TOTAL</span>
         <span>{{ number_format($cobro->monto_total, 2) }}</span>
     </div>
+    <div class="comprobante-fila"><span>Pagado</span><span>{{ number_format($cobro->monto_pagado, 2) }}</span></div>
+    @if($cobro->tieneSaldo())
+        <div class="comprobante-fila comprobante-total"><span>FALTA</span><span>{{ number_format($cobro->saldo_pendiente, 2) }}</span></div>
+    @endif
     <hr>
     <div class="text-center comprobante-firma">FIRMA</div>
 </div>

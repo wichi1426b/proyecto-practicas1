@@ -14,9 +14,21 @@
                         <td>Monto de apertura</td>
                         <td class="text-end">Bs. {{ number_format($arqueo->monto_apertura, 2) }}</td>
                     </tr>
+                    <tr class="text-muted small">
+                        <td class="ps-4">Dinero recibido de estudiantes</td>
+                        <td class="text-end">Bs. {{ number_format($arqueo->totalRecibido(), 2) }}</td>
+                    </tr>
+                    <tr class="text-muted small">
+                        <td class="ps-4">(-) Cambio entregado</td>
+                        <td class="text-end">Bs. {{ number_format($arqueo->totalCambio(), 2) }}</td>
+                    </tr>
                     <tr>
-                        <td>Recaudado en el turno</td>
-                        <td class="text-end">Bs {{ number_format($arqueo->totalRecaudado(), 2) }}</td>
+                        <td>(+) Recaudado en el turno</td>
+                        <td class="text-end">Bs. {{ number_format($arqueo->totalRecaudado(), 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td>(-) Devoluciones entregadas</td>
+                        <td class="text-end text-danger">Bs. {{ number_format($arqueo->totalDevuelto(), 2) }}</td>
                     </tr>
                     <tr class="fw-bold">
                         <td>Total que debería haber en caja</td>

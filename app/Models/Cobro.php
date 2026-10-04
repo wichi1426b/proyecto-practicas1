@@ -14,6 +14,8 @@ class Cobro extends Model
         'estudiante_id',
         'arqueo_caja_id',
         'monto_total',
+        'monto_pagado',
+        'saldo_pendiente',
         'tipo_pago',
         'fecha_pago',
         'estado',
@@ -46,6 +48,21 @@ class Cobro extends Model
     public function comprobante()
     {
         return $this->hasOne(Comprobante::class, 'cobro_id');
+    }
+
+    public function abonos()
+    {
+        return $this->hasMany(Abono::class, 'cobro_id');
+    }
+
+    public function scopeVigentes($query)
+    {
+        return $query->whereIn('estado', ['pagado', 'pendiente']);
+    }
+
+    public function tieneSaldo(): bool
+    {
+        return $this->estado === 'pendiente' && (float) $this->saldo_pendiente > 0;
     }
 
     public function solicitudesDevolucion()

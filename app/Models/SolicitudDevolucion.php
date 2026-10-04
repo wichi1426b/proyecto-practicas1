@@ -10,6 +10,9 @@ class SolicitudDevolucion extends Model
 
     protected $fillable = [
         'cobro_id',
+        'arqueo_caja_id',
+        'numero_comprobante',
+        'fecha_entrega',
         'cajero_solicitante_id',
         'admin_autoriza_id',
         'motivo',
@@ -22,11 +25,22 @@ class SolicitudDevolucion extends Model
     protected $casts = [
         'fecha_solicitud' => 'datetime',
         'fecha_resolucion' => 'datetime',
+        'fecha_entrega' => 'datetime',
     ];
 
     public function cobro()
     {
         return $this->belongsTo(Cobro::class, 'cobro_id');
+    }
+
+    public function arqueoCaja()
+    {
+        return $this->belongsTo(ArqueoCaja::class, 'arqueo_caja_id');
+    }
+
+    public function fueEntregada(): bool
+    {
+        return $this->fecha_entrega !== null;
     }
 
     public function cajeroSolicitante()

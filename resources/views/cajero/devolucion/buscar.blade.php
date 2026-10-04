@@ -68,6 +68,7 @@
                                 <th>Comprobante</th>
                                 <th>Ítem(s)</th>
                                 <th>Monto</th>
+                                <th>Pagado</th>
                                 <th>Fecha pago</th>
                                 <th>Estado solicitud</th>
                                 <th class="text-center">Acción</th>
@@ -84,6 +85,12 @@
                                     <td>{{ $cobro->comprobante?->numero_comprobante ?? '—' }}</td>
                                     <td>{{ $cobro->detallePagos->pluck('item.nombre')->implode(', ') }}</td>
                                     <td>Bs. {{ number_format($cobro->monto_total, 2) }}</td>
+                                    <td>
+                                        Bs. {{ number_format($cobro->monto_pagado, 2) }}
+                                        @if($cobro->tieneSaldo())
+                                            <br><span class="badge bg-warning text-dark">Falta Bs. {{ number_format($cobro->saldo_pendiente, 2) }}</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $cobro->fecha_pago->format('d/m/Y H:i') }}</td>
                                     <td>
                                         @if($solicitudAprobada)
@@ -125,12 +132,13 @@
                                 <tr>
                                     <th>Comprobante</th>
                                     <th>Estudiante</th>
-                                    <th>Monto</th>
+                                    <th>Monto a devolver</th>
                                     <th>Fecha cobro</th>
                                     <th>Fecha solicitud</th>
                                     <th>Motivo</th>
                                     <th>Estado</th>
                                     <th>Fecha resolución</th>
+                                    <th>Devolución</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -138,7 +146,7 @@
                                     <tr>
                                         <td>{{ $solicitud->cobro->comprobante?->numero_comprobante ?? '—' }}</td>
                                         <td>{{ $solicitud->cobro->estudiante->persona->nombreCompleto() }}</td>
-                                        <td>Bs. {{ number_format($solicitud->cobro->monto_total, 2) }}</td>
+                                        <td>Bs. {{ number_format($solicitud->monto_devuelto ?? $solicitud->cobro->monto_pagado, 2) }}</td>
                                         <td>{{ $solicitud->cobro->fecha_pago->format('d/m/Y H:i') }}</td>
                                         <td>{{ $solicitud->fecha_solicitud->format('d/m/Y H:i') }}</td>
                                         <td>{{ Str::limit($solicitud->motivo, 50) }}</td>
@@ -152,6 +160,21 @@
                                             @endif
                                         </td>
                                         <td>{{ $solicitud->fecha_resolucion?->format('d/m/Y H:i') ?? '—' }}</td>
+                                        <td>
+                                            @if($solicitud->estado === 'aprobada' && $solicitud->fueEntregada())
+                                                <a href="{{ route('cajero.devolucion.comprobante', $solicitud) }}" class="btn btn-sm btn-outline-secondary">
+                                                    Ver {{ $solicitud->numero_comprobante }}
+                                                </a>
+                                            @elseif($solicitud->estado === 'aprobada')
+                                                <form method="POST" action="{{ route('cajero.devolucion.entregar', $solicitud) }}"
+                                                      onsubmit="return confirm('¿Entregar Bs. {{ number_format($solicitud->monto_devuelto, 2) }} al estudiante? El monto saldrá de tu caja.')">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-danger">Entregar dinero</button>
+                                                </form>
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>

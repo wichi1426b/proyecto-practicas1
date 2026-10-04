@@ -15,9 +15,11 @@
                     <ul class="navbar-nav me-auto">
                         @if(auth()->user()->esSuperAdmin())
                             <li class="nav-item"><a class="nav-link" href="{{ route('superadmin.usuarios.index') }}">Usuarios</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ route('superadmin.backups.index') }}">Backup</a></li>
                         @endif
                             @if(auth()->user()->esAdmin())
                                 <li class="nav-item"><a class="nav-link" href="{{ route('admin.items.index') }}">Items</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{{ route('admin.estudiantes.index') }}">Estudiantes</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{{ route('admin.reportes.index') }}">Reporte</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{{ route('admin.reimpresiones.index') }}">Reimpresiones</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{{ route('admin.devoluciones.index') }}">Devoluciones</a></li>

@@ -13,6 +13,7 @@
             <th>Nombre</th>
             <th>Descripción</th>
             <th>Monto (Bs.)</th>
+            <th>Carreras</th>
             <th>Estado</th>
             <th>Creado por</th>
             <th></th>
@@ -24,6 +25,7 @@
                 <td>{{ $item->nombre }}</td>
                 <td>{{ $item->descripcion }}</td>
                 <td>{{ number_format($item->monto, 2) }}</td>
+                <td>{{ $item->carreras->isEmpty() ? 'Todas' : $item->carreras->pluck('nombre')->implode(', ') }}</td>
                 <td>
                     <span class="badge {{ $item->estado === 'activo' ? 'bg-success' : 'bg-secondary' }}">
                         {{ $item->estado }}
@@ -35,7 +37,7 @@
                 </td>
             </tr>
         @empty
-            <tr><td colspan="6" class="text-center">No existe registro</td></tr>
+            <tr><td colspan="7" class="text-center">No existe registro</td></tr>
         @endforelse
     </tbody>
 </table>
